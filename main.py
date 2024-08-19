@@ -5,8 +5,8 @@ import uuid
 
 import discord
 import webuiapi
-from PIL import Image
 
+# ctx.defer https://guide.pycord.dev/extensions/bridge#deferring
 # import sd_gen
 import wd_tagger
 
@@ -17,7 +17,14 @@ KOBOLDCPP_API_URL = "http://192.168.178.33:5001/api/v1/generate"
 # TODO: cogs
 
 bot = discord.Bot()
-api = webuiapi.WebUIApi(host=SD_WEBUI_IP, port=SD_WEBUI_PORT)
+api = webuiapi.WebUIApi(host=SD_WEBUI_IP, port=SD_WEBUI_PORT)  # TODO: check if server is even online
+
+cogs_list = [
+    "image_tagging",
+]
+
+for cog in cogs_list:
+    bot.load_extension(f"cogs.{cog}")
 
 
 @bot.event
@@ -40,61 +47,6 @@ async def on_connect():
 )
 async def say_hello(ctx: discord.ApplicationContext):
     await ctx.respond(f"Hello! {ctx.interaction.context.name} {ctx.channel_id}")
-
-
-async def tag_image_logic(ctx: discord.ApplicationContext, attachment: discord.Attachment):
-    await ctx.respond("Processing image...")
-    char_prob, gen_prob = "", ""
-
-    image_bytes = await attachment.read()
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    general_res, character_res = wd_tagger.predictsimple(image)
-
-    for tag, prob in character_res:
-        char_prob += f"{tag}\n"
-    for tag, prob in general_res:
-        gen_prob += f"{tag}, "
-    gen_prob = gen_prob.rstrip(", ")
-
-    if len(gen_prob) > 3950:
-        gen_prob = gen_prob[:3950]
-    if char_prob == "":
-        char_prob = "None"
-
-    # Edit the original response with the content and file
-    await ctx.interaction.edit_original_response(
-        content=f"**Character (Probability > 80%):** ´{char_prob}´"
-        + f"**General (Probability > 30%):** \n´{gen_prob}´",
-        # file=discord.File(fp=io.BytesIO(image_bytes), filename=f"{attachment.filename}"),
-    )
-
-
-# Tag Image Slash command
-@bot.slash_command(
-    integration_types={
-        discord.IntegrationType.guild_install,
-        discord.IntegrationType.user_install,
-    },
-    name="tag_image",
-    description="Tag an image using WaifuDiffusion taggers",
-)
-async def tag_image(ctx: discord.ApplicationContext, attachment: discord.Attachment):
-    await tag_image_logic(ctx, attachment)
-
-
-# Tag Image message command (context menu)
-@bot.message_command(
-    integration_types={
-        discord.IntegrationType.guild_install,
-        discord.IntegrationType.user_install,
-    },
-    name="Tag First Image",
-)
-async def tag_image_user_command(ctx: discord.ApplicationContext, msg: discord.Message):
-    if msg.attachments:
-        await tag_image_logic(ctx, msg.attachments[0])
-    else:
-        await ctx.respond("No image found in the selected message.")
 
 
 def extract_dimensions(resolution_str):
@@ -172,11 +124,11 @@ async def generate_image(
                 content=f"Progress: {progress['progress'] * 100:.0f}% {progress['state']['sampling_step']}/{progress['state']['sampling_steps']}"
             )
             await asyncio.sleep(2.5)
-        await asyncio.sleep(1) # probably redundant lol
+        await asyncio.sleep(1)  # probably redundant lol
 
     gen_result = await generation
     image_buffer = io.BytesIO()
-    gen_result.image.save(image_buffer, format="JPEG", quality=95) # PIL image
+    gen_result.image.save(image_buffer, format="JPEG", quality=95)  # PIL image
     image_buffer.seek(0)  # go back to the start of the BytesIO object
 
     await ctx.interaction.edit_original_response(

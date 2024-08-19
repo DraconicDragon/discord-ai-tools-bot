@@ -3,7 +3,7 @@ import onnxruntime as rt
 import pandas as pd
 from PIL import Image
 
-# Model file paths
+# Model and config file paths
 MODEL_PATH = "C:\\Users\\Drac\\Downloads\\wd tagger eva02_ConvNext v3\\wdEva02LargeTaggerV3.onnx"
 LABEL_PATH = "C:\\Users\\Drac\\Downloads\\wd tagger eva02_ConvNext v3\\selected_tags.csv"
 
@@ -35,10 +35,15 @@ def prepare_image(image, target_size):
 
 def predictsimple(image):
     tag_names, rating_indexes, general_indexes, character_indexes = load_labels(LABEL_PATH)
-    general_res, character_res = predict(image, load_model(), tag_names, general_indexes, character_indexes)
+
+    general_res, character_res = predict(
+        image, rt.InferenceSession(MODEL_PATH), tag_names, general_indexes, character_indexes
+    )
+
     return general_res, character_res
 
 
+# TODO: add rating
 def predict(image, model, tag_names, general_indexes, character_indexes, general_thresh=0.3, character_thresh=0.8):
     image = prepare_image(image, model.get_inputs()[0].shape[1])
     preds = model.run([model.get_outputs()[0].name], {model.get_inputs()[0].name: image})[0]
@@ -57,35 +62,4 @@ def predict(image, model, tag_names, general_indexes, character_indexes, general
     general_res = sorted(general_res, key=lambda x: x[1], reverse=True)
     character_res = sorted(character_res, key=lambda x: x[1], reverse=True)
 
-    return general_res, character_res
-
-
-def load_model():
-    return rt.InferenceSession(MODEL_PATH)
-
-
-def main():
-    # Load model and labels
-    tag_names, rating_indexes, general_indexes, character_indexes = load_labels(LABEL_PATH)
-    model = load_model()
-
-    # Load an image (replace 'input_image.png' with your image path)
-    image = Image.open(
-        "C:\\Users\\Drac\\Desktop\\__elea_original_drawn_by_paintrfiend__sample-8177aec12cc9069fec3b5b69b210c59f.jpg"
-    ).convert("RGB")
-
-    # Get predictions
-    general_res, character_res = predict(image, model, tag_names, general_indexes, character_indexes)
-
-    # Print the results
-    print("Character Tags (Probability > 80%):")
-    for tag, prob in character_res:
-        print(f"{tag}: {prob:.4f}")
-
-    print("\nGeneral Tags (Probability > 30%):")
-    for tag, prob in general_res:
-        print(f"{tag}: {prob:.4f}")
-
-
-if __name__ == "__main__":
-    main()
+    return general_res, character_res  # rating
