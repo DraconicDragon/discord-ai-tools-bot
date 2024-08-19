@@ -33,13 +33,13 @@ class ImageTagging(commands.Cog):  # create a class for our cog that inherits fr
             char_prob = "None"
 
         # python doesnt like backslashes in f strings, cringe
-        escaped_char_prob = char_prob.replace("_", "\\_")
-        escaped_gen_prob = gen_prob.replace("_", "\\_")
+        # char_prob = char_prob.replace("_", "\\_")
+        # gen_prob = gen_prob.replace("_", "\\_")
 
         # Use the preprocessed strings in the f-string
         await ctx.interaction.edit_original_response(
-            content=f"**Character (Probability > 80%):** `{escaped_char_prob}`"
-            + f"**General (Probability > 30%):** \n`{escaped_gen_prob}`",
+            content=f"**Character (Probability > 80%):** `{char_prob}`\n"
+            + f"**General (Probability > 30%):** \n`{gen_prob}`",
             # file=discord.File(fp=io.BytesIO(image_bytes), filename=f"{attachment.filename}"),
         )
 
