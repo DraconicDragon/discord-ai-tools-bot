@@ -46,6 +46,7 @@ async def on_connect():
     },
 )
 async def say_hello(ctx: discord.ApplicationContext):
+    bot.reload_extension("image_tagging")
     await ctx.respond(f"Hello! {ctx.interaction.context.name} {ctx.channel_id}")
 
 
